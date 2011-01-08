@@ -2547,7 +2547,6 @@ static int wpa_emulate_priv_android_cmd(void *priv, char *cmd, char *buf,
 		struct iwreq wrq;
 		struct iw_statistics stats;
 		signed int rssi;
-		wpa_printf(MSG_DEBUG, ">>>. DRIVER EMULATE RSSI ");
 		wrq.u.data.pointer = (caddr_t) &stats;
 		wrq.u.data.length = sizeof(stats);
 		/* Clear updated flag */
@@ -2555,27 +2554,26 @@ static int wpa_emulate_priv_android_cmd(void *priv, char *cmd, char *buf,
 		strncpy(wrq.ifr_name, drv->ifname, IFNAMSIZ);
 
 		if (ioctl(drv->ioctl_sock, SIOCGIWSTATS, &wrq) < 0) {
-			perror("ioctl[SIOCGIWSTATS]");
+            wpa_printf(MSG_ERROR, ">>>. ioctl[SIOCGIWSTATS]: %s", strerror(errno));
 			ret = -1;
 		} else {
+#if 0
 			if (stats.qual.updated & IW_QUAL_DBM) {
 				/* Values in dBm, stored in u8 with range 63 : -192 */
 				rssi = ( stats.qual.level > 63 ) ?
 					stats.qual.level - 0x100 :
 					stats.qual.level;
 			} else
+#endif
+            {
 				rssi = stats.qual.level;
+            }
 
-			if (drv->ssid_len != 0 &&
-			    drv->ssid_len < buf_len) {
-				os_memcpy((void *) buf, (void *)
-					  (drv->ssid), drv->ssid_len);
-				ret = drv->ssid_len;
-				ret += snprintf(&buf[ret], buf_len-ret,
-						" rssi %d\n", rssi);
-				if (ret < (int)buf_len)
-					return ret;
-				ret = -1;
+            //wpa_printf(MSG_ERROR, ">>>. ssid_len=%d, rssi=%d", drv->ssid_len, rssi);
+            if (drv->ssid_len < buf_len) {
+                ret = snprintf(buf, buf_len, "%s rssi %d\n",
+                        (drv->ssid ? (const char*)drv->ssid : ""), rssi);
+                return ret;
 			}
 		}
 	} else if (os_strcasecmp(cmd, "LINKSPEED") == 0) {
@@ -2732,8 +2730,6 @@ static int wpa_driver_priv_driver_cmd(void *priv, char *cmd, char *buf, size_t b
 	}
 
 	if (ret < 0) {
-		wpa_printf(MSG_ERROR, "%s failed, try to emulate it (%s)",
-			   __func__, cmd);
 		if ((os_strcasecmp(cmd, "RSSI") == 0) ||
 		    (os_strcasecmp(cmd, "START") == 0) ||
 		    (os_strcasecmp(cmd, "STOP") == 0) ||
@@ -2760,6 +2756,10 @@ static int wpa_driver_priv_driver_cmd(void *priv, char *cmd, char *buf, size_t b
 							   buf_len);
 			drv->errors = 0;
 			return ret;
+		}
+		else {
+			wpa_printf(MSG_ERROR, "%s failed, can't emulate it (%s)",
+				__func__, cmd);
 		}
 		if (ret < 0) {
 			drv->errors++;
