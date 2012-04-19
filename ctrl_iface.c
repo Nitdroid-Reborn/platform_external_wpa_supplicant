@@ -1153,6 +1153,28 @@ static int wpa_supplicant_driver_cmd(struct wpa_supplicant *wpa_s,
     return( ret );
 }
 
+static int wpa_supplicant_signal_poll(struct wpa_supplicant *wpa_s, char *buf,
+				      size_t buflen)
+{
+  char tmpBuf[200];
+  int ret, rssi, linkspeed;
+
+  ret = wpa_supplicant_driver_cmd(wpa_s, "RSSI", tmpBuf, sizeof(tmpBuf));
+  sscanf(tmpBuf, " rssi %d\n", &rssi);
+
+  ret = wpa_supplicant_driver_cmd(wpa_s, "LINKSPEED", tmpBuf, sizeof(tmpBuf));
+  sscanf(tmpBuf, "LinkSpeed %d\n", &linkspeed);
+
+  ret = os_snprintf(buf, buflen, "RSSI=%d\nLINKSPEED=%d\nNOISE=-97\nFREQUENCY=2462\n",
+                    rssi, linkspeed);
+
+  if (ret < 0 || (unsigned int) ret > buflen)
+      return -1;
+
+  return ret;
+}
+
+
 char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 					 char *buf, size_t *resp_len)
 {
@@ -1310,8 +1332,10 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strcmp(buf, "INTERFACES") == 0) {
 		reply_len = wpa_supplicant_global_iface_interfaces(
 			wpa_s->global, reply, reply_size);
-    } else if (os_strncmp(buf, "DRIVER ", 7) == 0) {
-        reply_len = wpa_supplicant_driver_cmd(wpa_s, buf + 7, reply, reply_size);
+	} else if (os_strncmp(buf, "SIGNAL_POLL", 11) == 0) {
+		reply_len = wpa_supplicant_signal_poll(wpa_s, reply, reply_size);
+	} else if (os_strncmp(buf, "DRIVER ", 7) == 0) {
+		reply_len = wpa_supplicant_driver_cmd(wpa_s, buf + 7, reply, reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;
