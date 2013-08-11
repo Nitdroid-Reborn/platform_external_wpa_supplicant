@@ -45,7 +45,7 @@ L_CFLAGS += -DWPA_UNICODE_SSID
 # OpenSSL is configured without engines on Android
 L_CFLAGS += -DOPENSSL_NO_ENGINE
 
-INCLUDES = external/openssl/include frameworks/base/cmds/keystore
+INCLUDES = external/openssl/include system/security/keystore/include
   
 OBJS = config.c common.c md5.c md4.c rc4.c sha1.c des.c
 OBJS_p = wpa_passphrase.c sha1.c md5.c md4.c common.c des.c
@@ -678,7 +678,7 @@ endif
 ifneq ($(BOARD_WPA_SUPPLICANT_PRIVATE_LIB),)
 LOCAL_STATIC_LIBRARIES += $(BOARD_WPA_SUPPLICANT_PRIVATE_LIB)
 endif
-LOCAL_SHARED_LIBRARIES := libc libcutils libcrypto libssl
+LOCAL_SHARED_LIBRARIES := libc libcutils libcrypto libssl libkeystore_binder
 LOCAL_CFLAGS := $(L_CFLAGS)
 LOCAL_SRC_FILES := $(OBJS)
 LOCAL_C_INCLUDES := $(INCLUDES)
